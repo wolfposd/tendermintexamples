@@ -6,29 +6,33 @@ import java.nio.ByteBuffer
 import com.github.jtendermint.jabci.api.ICheckTx
 import com.github.jtendermint.jabci.api.ICommit
 import com.github.jtendermint.jabci.api.IDeliverTx
+import com.github.jtendermint.jabci.api.IEndBlock
 import com.github.jtendermint.jabci.socket.TSocket
 import com.github.jtendermint.jabci.types.Types.CodeType
 import com.github.jtendermint.jabci.types.Types.RequestCheckTx
 import com.github.jtendermint.jabci.types.Types.RequestCommit
 import com.github.jtendermint.jabci.types.Types.RequestDeliverTx
+import com.github.jtendermint.jabci.types.Types.RequestEndBlock
 import com.github.jtendermint.jabci.types.Types.ResponseCheckTx
 import com.github.jtendermint.jabci.types.Types.ResponseCommit
 import com.github.jtendermint.jabci.types.Types.ResponseDeliverTx
+import com.github.jtendermint.jabci.types.Types.ResponseEndBlock
 import com.google.protobuf.ByteString
 
 import groovy.transform.Field
 
 
-@Field def hashCount = 0
-@Field def txCount = 0
-@Field def socket = new TSocket()
+@Field hashCount = 0
+@Field txCount = 0
+@Field socket = new TSocket()
 
-socket.registerListener([requestCheckTx: {tx -> return checktx(tx)}] as ICheckTx)
 
+println "registering listeners"
+
+socket.registerListener([requestCheckTx: {tx -> return requestCheckTx(tx)}] as ICheckTx)
 socket.registerListener([receivedDeliverTx: {tx -> return receivedDeliverTx(tx)}] as IDeliverTx)
-
 socket.registerListener([requestCommit: {tx -> return requestCommit(tx)}] as ICommit)
-
+socket.registerListener([requestEndBlock : {tx -> return requestEndBlock(tx)}] as IEndBlock)
 
 
 println "connecting $socket"
@@ -40,7 +44,7 @@ while(true) {
 
 
 
-ResponseCheckTx checktx(RequestCheckTx req) {
+ResponseCheckTx requestCheckTx(RequestCheckTx req) {
     println "got check tx"
     ByteString tx = req.getTx()
     if (tx.size() <= 4) {
@@ -87,4 +91,9 @@ ResponseCommit requestCommit(RequestCommit requestCommit) {
         buf.putInt(txCount)
         return ResponseCommit.newBuilder().setCode(CodeType.OK).setData(ByteString.copyFrom(buf)).build()
     }
+}
+
+ResponseEndBlock requestEndBlock(RequestEndBlock req) {
+    //println "blockheight ${req.getHeight()}"
+    return ResponseEndBlock.newBuilder().build()
 }
